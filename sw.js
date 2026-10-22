@@ -1,5 +1,5 @@
-const CACHE = 'ddp-gestion-v1';
-const FICHIERS = ['./index.html', './manifest.json'];
+const CACHE = 'ddp-gestion-v2';
+const FICHIERS = ['./index.html', './manifest.json', './icon-192.png', './icon-512.png'];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FICHIERS)));
@@ -13,10 +13,16 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
-// Hors connexion : on sert la copie enregistrée, sinon le réseau
+// En ligne : on prend la version la plus récente. Hors ligne : la copie enregistrée.
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   e.respondWith(
-    caches.match(e.request).then(r => r || fetch(e.request).catch(() => caches.match('./index.html')))
+    fetch(e.request)
+      .then(r => {
+        const copie = r.clone();
+        caches.open(CACHE).then(c => c.put(e.request, copie));
+        return r;
+      })
+      .catch(() => caches.match(e.request).then(r => r || caches.match('./index.html')))
   );
 });
