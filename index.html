@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d3b66">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="DDP Gestion">
+<link rel="manifest" href="manifest.json">
+<title>DDP Gestion</title>
+<style>
+  :root { --bleu:#0d3b66; --bleu2:#1f6fb2; --vert:#2e8b57; --rouge:#c0392b; --gris:#f3f5f8; --texte:#1d2630; --bord:#d9dee6; }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background:var(--gris); color:var(--texte); padding-bottom:70px; }
+  header { background:var(--bleu); color:#fff; padding:14px 16px; position:sticky; top:0; z-index:5; }
+  header h1 { margin:0; font-size:20px; }
+  header small { opacity:.8; }
+  nav { position:fixed; bottom:0; left:0; right:0; display:flex; background:#fff; border-top:1px solid var(--bord); z-index:5; padding-bottom:env(safe-area-inset-bottom); }
+  nav button { flex:1; padding:10px 2px; border:0; background:none; font-size:12px; color:#667; }
+  nav button.actif { color:var(--bleu); font-weight:700; }
+  main { padding:12px; }
+  section.page { display:none; }
+  section.page.actif { display:block; }
+  .carte { background:#fff; border:1px solid var(--bord); border-radius:12px; padding:14px; margin-bottom:12px; }
+  h2 { font-size:17px; margin:4px 0 10px; color:var(--bleu); }
+  h3 { font-size:14px; margin:12px 0 6px; color:var(--bleu2); }
+  label { display:block; font-size:13px; margin:8px 0 3px; color:#444; }
+  input, select, textarea { width:100%; padding:10px; border:1px solid var(--bord); border-radius:8px; font-size:16px; background:#fff; }
+  .deux { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .trois { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+  button.btn { background:var(--bleu2); color:#fff; border:0; border-radius:10px; padding:12px 14px; font-size:15px; width:100%; margin-top:10px; }
+  button.btn.sec { background:#e7edf5; color:var(--bleu); }
+  button.btn.danger { background:var(--rouge); }
+  button.btn.petit { width:auto; padding:6px 10px; font-size:13px; margin:0; }
+  .liste .item { display:flex; justify-content:space-between; align-items:center; gap:8px; padding:10px 0; border-bottom:1px solid #eef1f5; }
+  .liste .item:last-child { border-bottom:0; }
+  .petit-texte { font-size:12px; color:#667; }
+  .total { font-weight:700; font-size:16px; }
+  .alerte { color:var(--rouge); font-weight:700; }
+  .photos { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; margin-top:8px; }
+  .photos div { position:relative; }
+  .grosbouton { display:flex; align-items:center; justify-content:center; width:100%; min-height:110px; background:var(--bleu2); color:#fff; border-radius:16px; font-size:20px; font-weight:700; cursor:pointer; text-align:center; }
+  .grosbouton input { display:none; }
+  .stats { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:8px; }
+  .stat { background:#f8fbff; border:1px solid var(--bord); border-radius:12px; padding:10px 6px; text-align:center; }
+  .stat b { display:block; font-size:20px; color:var(--bleu); }
+  .stat span { font-size:11px; color:#667; }
+  .photos img { width:100%; height:90px; object-fit:cover; border-radius:8px; }
+  .photos button { position:absolute; top:3px; right:3px; background:rgba(0,0,0,.6); color:#fff; border:0; border-radius:50%; width:24px; height:24px; }
+  .ligne { display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:6px; align-items:center; margin-top:6px; }
+  .ligne button { padding:8px; border:0; border-radius:8px; background:#f4d6d2; color:var(--rouge); }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { border-bottom:1px solid #eef1f5; padding:6px 4px; text-align:left; }
+  th { color:#555; }
+  .droite { text-align:right; }
+  @media print {
+    header, nav, .no-print { display:none !important; }
+    body { background:#fff; padding:0; }
+    section.page { display:none !important; }
+    section#rapport.page { display:block !important; }
+    .carte { border:0; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>DDP Gestion</h1>
+  <small id="sous-titre">DOLLEY Dépannage Plomberie</small>
+</header>
+
+<main>
+
+<!-- ============ PHOTO (écran d'accueil) ============ -->
+<section class="page actif" id="photo">
+  <div class="carte">
+    <h2>Prendre une photo</h2>
+    <label class="grosbouton">
+      📷&nbsp;Ouvrir l'appareil photo
+      <input type="file" accept="image/*" capture="environment" multiple onchange="ajouterPhotoJour(this)">
+    </label>
+    <div class="petit-texte" style="margin-top:8px">Les photos sont rangées ici. Tu les ajouteras ensuite à l'intervention.</div>
+  </div>
+  <div class="carte">
+    <h2>Photos du jour (<span id="nb-photos-jour">0</span>)</h2>
+    <div class="photos" id="photos-jour"></div>
+    <button class="btn" onclick="importerPhotosJour()">Ajouter ces photos à l'intervention</button>
+    <button class="btn sec" onclick="aller('interventions')">Aller aux interventions</button>
+  </div>
+</section>
+
+<!-- ============ TABLEAU DE BORD ============ -->
+<section class="page" id="tableau">
+  <div class="carte">
+    <h2>Tableau de bord · <span id="t-mois"></span></h2>
+    <div class="stats">
+      <div class="stat"><b id="t-ca">0 €</b><span>CA HT du mois</span></div>
+      <div class="stat"><b id="t-ouverts">0</b><span>Chantiers ouverts</span></div>
+      <div class="stat"><b id="t-nb">0</b><span>Interventions</span></div>
+    </div>
+    <h3>Heures par personne (ce mois)</h3>
+    <div id="t-heures"></div>
+    <h3>Chantiers ouverts</h3>
+    <div class="liste" id="t-liste-ouverts"></div>
+    <h3>Stock à recharger dans le camion</h3>
+    <div class="liste" id="t-recharger"></div>
+  </div>
+</section>
+
+<!-- ============ INTERVENTIONS ============ -->
+<section class="page" id="interventions">
+  <div class="carte">
+    <h2 id="titre-form">Nouvelle intervention</h2>
+    <input type="hidden" id="edit-id">
+    <div class="deux">
+      <div><label>Date</label><input type="date" id="i-date"></div>
+      <div><label>Type</label>
+        <select id="i-type">
+          <option>Dépannage</option><option>Fuite</option><option>Débouchage</option>
+          <option>Chauffe-eau</option><option>Adoucisseur</option><option>Radiateur / tête thermostatique</option>
+          <option>Salle de bain</option><option>Robinetterie</option><option>Autre</option>
+        </select>
+      </div>
+    </div>
+    <label>Client</label><input id="i-client" placeholder="Nom du client">
+    <label>Adresse</label><input id="i-adresse" placeholder="Adresse du chantier">
+    <label>Travaux réalisés</label><textarea id="i-desc" rows="3" placeholder="Ce qui a été fait"></textarea>
+
+    <h3>Horaires travaillés</h3>
+    <div id="horaires"></div>
+    <button class="btn sec petit no-print" onclick="ajouterHoraire()">+ Ajouter une personne</button>
+
+    <h3>Trajet</h3>
+    <div class="deux">
+      <div><label>Kilomètres</label><input type="number" id="i-km" step="0.1" min="0" oninput="calcul()"></div>
+      <div><label>Facturer le trajet ?</label>
+        <select id="i-facture-km" onchange="calcul()"><option value="oui">Oui</option><option value="non">Non</option></select>
+      </div>
+    </div>
+
+    <h3>Pièces utilisées</h3>
+    <div id="lignes-pieces"></div>
+    <button class="btn sec petit no-print" onclick="ajouterLignePiece()">+ Ajouter une pièce</button>
+    <div class="petit-texte" id="avert-stock"></div>
+
+    <h3>Photos</h3>
+    <input type="file" id="i-photos" accept="image/*" capture="environment" multiple onchange="ajouterPhotos(this)">
+    <div class="photos" id="photos-apercu"></div>
+
+    <h3>Prix de vente</h3>
+    <div class="deux">
+      <div><label>TVA</label><select id="i-tva" onchange="calcul()"><option value="10">10 %</option><option value="20">20 %</option></select></div>
+      <div><label>Taux horaire HT (€)</label><input type="number" id="i-taux" step="0.5" oninput="calcul()"></div>
+    </div>
+    <div id="recap-prix" class="carte" style="margin-top:10px;background:#f8fbff"></div>
+
+    <button class="btn" onclick="sauverIntervention()">Enregistrer l'intervention</button>
+    <button class="btn sec" onclick="resetForm()">Nouvelle intervention vide</button>
+  </div>
+
+  <div class="carte">
+    <h2>Interventions récentes</h2>
+    <div class="liste" id="liste-interventions"></div>
+  </div>
+</section>
+
+<!-- ============ INVENTAIRE ============ -->
+<section class="page" id="inventaire">
+  <div class="carte">
+    <h2>Ajouter un raccord ou une pièce</h2>
+    <label>Désignation</label><input id="s-nom" placeholder="ex. Coude cuivre à souder Ø14">
+    <div class="trois">
+      <div><label>Réf.</label><input id="s-ref"></div>
+      <div><label>Stock</label><input type="number" id="s-qte" min="0" value="0"></div>
+      <div><label>Niveau à garder</label><input type="number" id="s-seuil" min="0" value="2"></div>
+    </div>
+    <div class="deux">
+      <div><label>Prix achat HT (€)</label><input type="number" id="s-ht" step="0.01" min="0"></div>
+      <div><label>Prix achat TTC (€)</label><input type="number" id="s-ttc" step="0.01" min="0"></div>
+    </div>
+    <div class="deux">
+      <div><label>Coefficient de vente (ex. 1,6)</label><input type="number" id="s-coef" step="0.1" value="1.6"></div>
+      <div></div>
+    </div>
+    <label>Fournisseur</label>
+    <select id="s-fourn"><option>Cedeo</option><option>Point P</option><option>Legallais</option><option>Autre</option></select>
+    <button class="btn" onclick="ajouterStock()">Ajouter à l'inventaire</button>
+  </div>
+  <div class="carte">
+    <h2>Stock</h2>
+    <input id="recherche-stock" placeholder="Rechercher..." oninput="afficherStock()">
+    <div class="liste" id="liste-stock" style="margin-top:8px"></div>
+  </div>
+</section>
+
+<!-- ============ RAPPORTS ============ -->
+<section class="page" id="rapports">
+  <div class="carte no-print">
+    <h2>Période</h2>
+    <input type="month" id="r-mois" onchange="afficherRapport()">
+    <div class="deux">
+      <button class="btn sec" onclick="exporterCSV()">Exporter CSV</button>
+      <button class="btn" onclick="window.print()">Imprimer / PDF</button>
+    </div>
+    <button class="btn sec" onclick="partager()">Partager le résumé</button>
+  </div>
+
+  <div id="rapport" class="carte">
+    <h2 id="r-titre">Rapport</h2>
+    <div class="petit-texte" id="r-entete"></div>
+    <h3>Heures par personne</h3>
+    <div id="r-heures"></div>
+    <h3>Interventions</h3>
+    <div style="overflow-x:auto"><table id="r-table"></table></div>
+    <h3>Totaux</h3>
+    <div id="r-totaux"></div>
+  </div>
+</section>
+
+<!-- ============ RÉGLAGES ============ -->
+<section class="page" id="reglages">
+  <div class="carte">
+    <h2>Réglages</h2>
+    <label>Nom de l'entreprise</label><input id="g-nom">
+    <label>Personnes qui travaillent (une par ligne)</label>
+    <textarea id="g-personnes" rows="3"></textarea>
+    <div class="deux">
+      <div><label>Taux horaire HT par défaut (€)</label><input type="number" id="g-taux" step="0.5"></div>
+      <div><label>Marge par défaut (%)</label><input type="number" id="g-marge" step="1"></div>
+    </div>
+    <div class="deux">
+      <div><label>Barème km (€/km)</label><input type="number" id="g-km" step="0.01"></div>
+      <div><label>TVA (%)</label><input type="number" id="g-tva" step="0.5"></div>
+    </div>
+    <button class="btn" onclick="sauverReglages()">Enregistrer les réglages</button>
+  </div>
+  <div class="carte">
+    <h2>Sauvegarde</h2>
+    <button class="btn sec" onclick="exporterSauvegarde()">Exporter une sauvegarde</button>
+    <label>Restaurer une sauvegarde</label>
+    <input type="file" accept="application/json" onchange="importerSauvegarde(this)">
+    <div class="petit-texte" style="margin-top:8px">Les données sont enregistrées sur ce téléphone. Pense à exporter une sauvegarde de temps en temps.</div>
+  </div>
+</section>
+
+</main>
+
+<nav class="no-print">
+  <button class="actif" data-page="photo" onclick="aller('photo')">📷 Photo</button>
+  <button data-page="tableau" onclick="aller('tableau')">Tableau</button>
+  <button data-page="interventions" onclick="aller('interventions')">Interventions</button>
+  <button data-page="inventaire" onclick="aller('inventaire')">Inventaire</button>
+  <button data-page="rapports" onclick="aller('rapports')">Rapports</button>
+  <button data-page="reglages" onclick="aller('reglages')">Réglages</button>
+</nav>
+
+<script>
+// ---------- Données ----------
+const CLE = 'ddp-gestion-v1';
+const defaut = {
+  reglages: { nom: 'DOLLEY Dépannage Plomberie', personnes: ['Damien', 'Ouvrier'], taux: 0, marge: 0, km: 0, tva: 20 },
+  stock: [],
+  interventions: [],
+  photosJour: []
+};
+let db = charger();
+let pieceEdition = []; // pièces de l'intervention en cours
+let photosEdition = [];
+let horairesEdition = [];
+
+function charger() {
+  try {
+    const d = JSON.parse(localStorage.getItem(CLE));
+    if (d) return Object.assign({}, defaut, d, { reglages: Object.assign({}, defaut.reglages, d.reglages) });
+  } catch (e) {}
+  return JSON.parse(JSON.stringify(defaut));
+}
+function sauver() { localStorage.setItem(CLE, JSON.stringify(db)); }
+const id = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+const euro = n => (Math.round(n * 100) / 100).toFixed(2).replace('.', ',') + ' €';
+const nombre = n => (Math.round(n * 100) / 100).toString().replace('.', ',');
+const aujourdhui = () => new Date().toISOString().slice(0, 10);
+
+// ---------- Navigation ----------
+function aller(page) {
+  document.querySelectorAll('section.page').forEach(s => s.classList.toggle('actif', s.id === page));
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('actif', b.dataset.page === page));
+  if (page === 'inventaire') afficherStock();
+  if (page === 'rapports') afficherRapport();
+  if (page === 'reglages') remplirReglages();
+  if (page === 'interventions') afficherInterventions();
+  if (page === 'photo') afficherPhotosJour();
+  if (page === 'tableau') afficherTableau();
+  window.scrollTo(0, 0);
+}
+
+// ---------- Devis ----------
+function devis(idI) {
+  const i = db.interventions.find(x => x.id === idI);
+  if (!i) return;
+  const t = totauxIntervention(i);
+  const tva = i.tva || 20;
+  const lignes = i.pieces.map(p => `<tr><td>${p.nom}</td><td class="r">${p.qte}</td><td class="r">${euro(p.pu * (p.coef || 1.6))}</td><td class="r">${euro(p.qte * p.pu * (p.coef || 1.6))}</td></tr>`).join('');
+  const mo = `<tr><td>Main d'œuvre</td><td class="r">${nombre(t.heures)} h</td><td class="r">${euro(i.taux)}</td><td class="r">${euro(t.mo)}</td></tr>`;
+  const km = i.facturerKm && i.km ? `<tr><td>Déplacement</td><td class="r">${nombre(i.km)} km</td><td class="r">${euro(db.reglages.km)}</td><td class="r">${euro(t.km)}</td></tr>` : '';
+  const w = window.open('', '_blank');
+  w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Devis</title><style>body{font-family:system-ui,sans-serif;padding:20px;color:#1d2630}table{width:100%;border-collapse:collapse;margin-top:12px}th,td{border-bottom:1px solid #ddd;padding:6px;text-align:left}.r{text-align:right}.tot{font-weight:bold}h1{color:#0d3b66;font-size:22px}</style></head><body>
+    <h1>DEVIS</h1>
+    <p><b>${db.reglages.nom}</b><br>Date : ${i.date.split('-').reverse().join('/')}<br>Client : ${i.client || ''}<br>${i.adresse || ''}</p>
+    <p>Objet : ${i.type}<br>${i.description || ''}</p>
+    <table><tr><th>Désignation</th><th class="r">Qté</th><th class="r">PU HT</th><th class="r">Total HT</th></tr>${lignes}${mo}${km}</table>
+    <table style="margin-top:16px">
+      <tr><td class="tot">Total HT</td><td class="r tot">${euro(t.ht)}</td></tr>
+      <tr><td>TVA ${tva} %</td><td class="r">${euro(t.ht * tva / 100)}</td></tr>
+      <tr><td class="tot">Total TTC</td><td class="r tot">${euro(t.ht * (1 + tva / 100))}</td></tr>
+    </table>
+    <p style="margin-top:20px;font-size:12px">Devis valable 30 jours. ${tva === 10 ? 'TVA 10 % : travaux sur logement de plus de 2 ans.' : ''}</p>
+    <script>window.onload=()=>window.print()<\/script></body></html>`);
+  w.document.close();
+}
+
+// ---------- Clôture et tableau de bord ----------
+function cloturer(idI) {
+  const i = db.interventions.find(x => x.id === idI);
+  if (!i) return;
+  i.statut = 'termine';
+  i.clotureLe = new Date().toISOString();
+  sauver();
+  afficherInterventions();
+}
+
+function afficherTableau() {
+  const mois = aujourdhui().slice(0, 7);
+  const [a, m] = mois.split('-');
+  document.getElementById('t-mois').textContent = new Date(a, m - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+
+  const duMois = db.interventions.filter(i => i.date.startsWith(mois));
+  let ca = 0;
+  const heures = {};
+  duMois.forEach(i => {
+    ca += totauxIntervention(i).ht;
+    i.horaires.forEach(h => {
+      if (!h.nom) return;
+      heures[h.nom] = (heures[h.nom] || 0) + heuresEntre(h.debut, h.fin);
+    });
+  });
+  document.getElementById('t-ca').textContent = euro(ca);
+  document.getElementById('t-nb').textContent = duMois.length;
+
+  const ouvertes = db.interventions
+    .filter(i => (i.statut || 'ouvert') === 'ouvert')
+    .sort((x, y) => x.date.localeCompare(y.date));
+  document.getElementById('t-ouverts').textContent = ouvertes.length;
+  document.getElementById('t-heures').innerHTML = Object.keys(heures).length
+    ? Object.entries(heures).map(([n, h]) => `<div class="item"><span>${n}</span><b>${nombre(h)} h</b></div>`).join('')
+    : '<div class="petit-texte">Aucune heure ce mois-ci.</div>';
+  document.getElementById('t-liste-ouverts').innerHTML = ouvertes.length
+    ? ouvertes.map(i => `<div class="item"><div><b>${i.client || 'Client non renseigné'}</b><br><span class="petit-texte">${i.date.split('-').reverse().join('/')} · ${i.adresse || ''}</span></div>
+        <button class="btn petit" onclick="cloturer('${i.id}');afficherTableau()">Clôturer</button></div>`).join('')
+    : '<div class="petit-texte">Aucun chantier ouvert.</div>';
+
+  const aRecharger = db.stock.filter(s => s.qte < s.seuil);
+  document.getElementById('t-recharger').innerHTML = aRecharger.length
+    ? aRecharger.map(s => `<div class="item"><span>${s.nom}</span><b class="alerte">Recharger ${s.seuil - s.qte}</b></div>`).join('')
+    : '<div class="petit-texte">Le camion est bien rempli.</div>';
+}
+
+// ---------- Photos rapides ----------
+async function ajouterPhotoJour(input) {
+  const fichiers = Array.from(input.files);
+  for (const f of fichiers) {
+    const data = await compresser(f);
+    db.photosJour = db.photosJour || [];
+    db.photosJour.push({ id: id(), date: aujourdhui(), heure: new Date().toTimeString().slice(0, 5), data });
+  }
+  input.value = '';
+  sauver();
+  afficherPhotosJour();
+}
+
+function afficherPhotosJour() {
+  const liste = db.photosJour || [];
+  document.getElementById('nb-photos-jour').textContent = liste.length;
+  document.getElementById('photos-jour').innerHTML = liste.map((p, i) => `
+    <div><img src="${p.data}"><button onclick="supprimerPhotoJour(${i})">✕</button></div>`).join('');
+}
+
+function supprimerPhotoJour(i) {
+  db.photosJour.splice(i, 1);
+  sauver();
+  afficherPhotosJour();
+}
+
+function importerPhotosJour() {
+  const liste = db.photosJour || [];
+  if (!liste.length) return alert('Aucune photo à ajouter');
+  liste.forEach(p => photosEdition.push(p.data));
+  db.photosJour = [];
+  sauver();
+  afficherPhotosJour();
+  aller('interventions');
+  rendreFormulaire();
+}
+
+// ---------- Interventions ----------
+function resetForm() {
+  document.getElementById('edit-id').value = '';
+  document.getElementById('titre-form').textContent = 'Nouvelle intervention';
+  ['i-client', 'i-adresse', 'i-desc', 'i-km'].forEach(x => document.getElementById(x).value = '');
+  document.getElementById('i-date').value = aujourdhui();
+  document.getElementById('i-tva').value = '10';
+  document.getElementById('i-taux').value = db.reglages.taux;
+  document.getElementById('i-facture-km').value = 'oui';
+  horairesEdition = db.reglages.personnes.map(p => ({ nom: p, debut: '', fin: '' }));
+  horairesEdition = [horairesEdition[0] || { nom: '', debut: '', fin: '' }];
+  pieceEdition = [];
+  photosEdition = [];
+  rendreFormulaire();
+}
+
+function rendreFormulaire() {
+  // horaires
+  document.getElementById('horaires').innerHTML = horairesEdition.map((h, i) => `
+    <div class="trois" style="margin-top:6px">
+      <div><input placeholder="Nom" value="${h.nom}" oninput="horairesEdition[${i}].nom=this.value"></div>
+      <div><input type="time" value="${h.debut}" onchange="horairesEdition[${i}].debut=this.value;calcul()"></div>
+      <div><input type="time" value="${h.fin}" onchange="horairesEdition[${i}].fin=this.value;calcul()"></div>
+    </div>`).join('');
+  // pièces
+  const options = db.stock.map(s => `<option value="${s.id}">${s.nom} (stock ${s.qte})</option>`).join('');
+  document.getElementById('lignes-pieces').innerHTML = pieceEdition.map((p, i) => `
+    <div class="ligne">
+      <select onchange="pieceEdition[${i}].id=this.value;pieceEdition[${i}].pu=prixAchat(this.value);pieceEdition[${i}].coef=coefAchat(this.value);calcul()">
+        <option value="">-- choisir --</option>${options.replace(`value="${p.id}"`, `value="${p.id}" selected`)}
+      </select>
+      <input type="number" min="0" step="1" value="${p.qte}" oninput="pieceEdition[${i}].qte=+this.value;calcul()">
+      <input type="number" min="0" step="0.01" value="${p.pu}" oninput="pieceEdition[${i}].pu=+this.value;calcul()">
+      <button onclick="pieceEdition.splice(${i},1);rendreFormulaire();calcul()">✕</button>
+    </div>`).join('');
+  // photos
+  document.getElementById('photos-apercu').innerHTML = photosEdition.map((p, i) => `
+    <div><img src="${p}"><button onclick="photosEdition.splice(${i},1);rendreFormulaire()">✕</button></div>`).join('');
+  calcul();
+}
+
+function ajouterHoraire() {
+  horairesEdition.push({ nom: '', debut: '', fin: '' });
+  rendreFormulaire();
+}
+function ajouterLignePiece() {
+  pieceEdition.push({ id: '', qte: 1, pu: 0 });
+  rendreFormulaire();
+}
+function coefAchat(idStock) {
+  const s = db.stock.find(x => x.id === idStock);
+  return s ? (s.coef || 1.6) : 1.6;
+}
+function prixAchat(idStock) {
+  const s = db.stock.find(x => x.id === idStock);
+  return s ? s.ht : 0;
+}
+
+function heuresEntre(debut, fin) {
+  if (!debut || !fin) return 0;
+  const [h1, m1] = debut.split(':').map(Number);
+  const [h2, m2] = fin.split(':').map(Number);
+  const min = (h2 * 60 + m2) - (h1 * 60 + m1);
+  return min > 0 ? min / 60 : 0;
+}
+
+function calcul() {
+  // lire les valeurs saisies
+  const heures = horairesEdition.reduce((s, h) => s + heuresEntre(h.debut, h.fin), 0);
+  const taux = +document.getElementById('i-taux').value || 0;
+  // le coefficient de vente est défini par article
+  const km = +document.getElementById('i-km').value || 0;
+  const facturerKm = document.getElementById('i-facture-km').value === 'oui';
+  const tva = (+document.getElementById('i-tva').value || 20) / 100;
+
+  const coutPieces = pieceEdition.reduce((s, p) => s + (p.qte || 0) * (p.pu || 0), 0);
+  const piecesVendues = pieceEdition.reduce((s, p) => s + (p.qte || 0) * (p.pu || 0) * (p.coef || 1.6), 0);
+  const mainOeuvre = heures * taux;
+  const fraisKm = facturerKm ? km * db.reglages.km : 0;
+  const totalHT = piecesVendues + mainOeuvre + fraisKm;
+  const totalTTC = totalHT * (1 + tva);
+  const benefice = piecesVendues - coutPieces + mainOeuvre + fraisKm;
+
+  document.getElementById('recap-prix').innerHTML = `
+    <div>Heures travaillées : <b>${nombre(heures)} h</b></div>
+    <div>Main d'œuvre HT : ${euro(mainOeuvre)}</div>
+    <div>Pièces (coût achat HT) : ${euro(coutPieces)}</div>
+    <div>Pièces facturées HT (avec marge) : ${euro(piecesVendues)}</div>
+    <div>Trajet : ${euro(fraisKm)} ${facturerKm ? '' : '(non facturé)'}</div>
+    <div class="total">Total HT : ${euro(totalHT)}</div>
+    <div class="total">Total TTC : ${euro(totalTTC)}</div>
+    <div class="petit-texte">Marge sur l'intervention : ${euro(benefice)}</div>`;
+
+  // alerte stock
+  const manquants = pieceEdition.filter(p => {
+    const s = db.stock.find(x => x.id === p.id);
+    return s && (p.qte || 0) > s.qte;
+  }).map(p => db.stock.find(x => x.id === p.id).nom);
+  document.getElementById('avert-stock').innerHTML = manquants.length
+    ? `<span class="alerte">Stock insuffisant : ${manquants.join(', ')}</span>` : '';
+}
+
+function ajouterPhotos(input) {
+  const fichiers = Array.from(input.files);
+  fichiers.forEach(f => compresser(f).then(url => { photosEdition.push(url); rendreFormulaire(); }));
+  input.value = '';
+}
+
+// Réduit la taille des photos pour ne pas saturer le stockage du téléphone
+function compresser(fichier) {
+  return new Promise(resolve => {
+    const lecteur = new FileReader();
+    lecteur.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 1200;
+        const ratio = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = img.width * ratio; c.height = img.height * ratio;
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        resolve(c.toDataURL('image/jpeg', 0.7));
+      };
+      img.src = lecteur.result;
+    };
+    lecteur.readAsDataURL(fichier);
+  });
+}
+
+function sauverIntervention() {
+  const editId = document.getElementById('edit-id').value;
+  const anciennes = editId ? db.interventions.find(i => i.id === editId) : null;
+  const pieces = pieceEdition.filter(p => p.id && p.qte > 0);
+  const heures = horairesEdition.filter(h => h.nom || h.debut || h.fin);
+
+  // mise à jour du stock : on rend les anciennes pièces, puis on retire les nouvelles
+  if (anciennes) anciennes.pieces.forEach(p => ajusterStock(p.id, p.qte));
+  pieces.forEach(p => ajusterStock(p.id, -p.qte));
+
+  const intervention = {
+    id: editId || id(),
+    date: document.getElementById('i-date').value || aujourdhui(),
+    client: document.getElementById('i-client').value.trim(),
+    adresse: document.getElementById('i-adresse').value.trim(),
+    type: document.getElementById('i-type').value,
+    description: document.getElementById('i-desc').value.trim(),
+    horaires: heures,
+    km: +document.getElementById('i-km').value || 0,
+    facturerKm: document.getElementById('i-facture-km').value === 'oui',
+    taux: +document.getElementById('i-taux').value || 0,
+    tva: +document.getElementById('i-tva').value || 20,
+    pieces: pieces.map(p => ({ id: p.id, nom: nomStock(p.id), qte: p.qte, pu: p.pu, coef: p.coef || 1.6 })),
+    photos: photosEdition.slice(),
+    statut: anciennes ? (anciennes.statut || 'ouvert') : 'ouvert'
+  };
+  if (editId) db.interventions = db.interventions.map(i => i.id === editId ? intervention : i);
+  else db.interventions.push(intervention);
+  sauver();
+  alert('Intervention enregistrée');
+  resetForm();
+  afficherInterventions();
+}
+
+function nomStock(idStock) {
+  const s = db.stock.find(x => x.id === idStock);
+  return s ? s.nom : '(pièce supprimée)';
+}
+function ajusterStock(idStock, delta) {
+  const s = db.stock.find(x => x.id === idStock);
+  if (s) s.qte = Math.max(0, s.qte + delta);
+}
+
+function modifierIntervention(idI) {
+  const i = db.interventions.find(x => x.id === idI);
+  if (!i) return;
+  document.getElementById('edit-id').value = i.id;
+  document.getElementById('titre-form').textContent = 'Modifier une intervention';
+  document.getElementById('i-date').value = i.date;
+  document.getElementById('i-type').value = i.type;
+  document.getElementById('i-client').value = i.client;
+  document.getElementById('i-adresse').value = i.adresse;
+  document.getElementById('i-desc').value = i.description;
+  document.getElementById('i-km').value = i.km;
+  document.getElementById('i-facture-km').value = i.facturerKm ? 'oui' : 'non';
+  document.getElementById('i-taux').value = i.taux;
+  document.getElementById('i-tva').value = i.tva || 20;
+  horairesEdition = i.horaires.map(h => ({ ...h }));
+  pieceEdition = i.pieces.map(p => ({ id: p.id, qte: p.qte, pu: p.pu, coef: p.coef || 1.6 }));
+  photosEdition = i.photos.slice();
+  aller('interventions');
+  rendreFormulaire();
+}
+
+function supprimerIntervention(idI) {
+  if (!confirm('Supprimer cette intervention ? Les pièces seront remises en stock.')) return;
+  const i = db.interventions.find(x => x.id === idI);
+  if (i) i.pieces.forEach(p => ajusterStock(p.id, p.qte));
+  db.interventions = db.interventions.filter(x => x.id !== idI);
+  sauver();
+  afficherInterventions();
+}
+
+function totauxIntervention(i) {
+  const heures = i.horaires.reduce((s, h) => s + heuresEntre(h.debut, h.fin), 0);
+  const coutPieces = i.pieces.reduce((s, p) => s + p.qte * p.pu, 0);
+  const piecesVendues = i.pieces.reduce((s, p) => s + p.qte * p.pu * (p.coef || 1.6), 0);
+  const mo = heures * i.taux;
+  const km = i.facturerKm ? i.km * db.reglages.km : 0;
+  const ht = piecesVendues + mo + km;
+  return { heures, coutPieces, piecesVendues, mo, km, ht, ttc: ht * (1 + (i.tva || 20) / 100) };
+}
+
+function afficherInterventions() {
+  const liste = [...db.interventions].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 30);
+  document.getElementById('liste-interventions').innerHTML = liste.length ? liste.map(i => {
+    const t = totauxIntervention(i);
+    return `<div class="item">
+      <div><b>${i.date.split('-').reverse().join('/')} · ${i.type}</b><br>
+      <span class="petit-texte">${i.client || 'Client non renseigné'} — ${i.adresse || ''}</span><br>
+      <span class="petit-texte">${nombre(t.heures)} h · ${i.photos.length} photo(s) · ${euro(t.ttc)} TTC</span></div>
+      <div style="white-space:nowrap">
+        ${(i.statut || 'ouvert') === 'ouvert' ? `<button class="btn petit" onclick="cloturer('${i.id}')">Clôturer</button>` : '<span class="petit-texte">✔ Clôturé</span>'}
+        <button class="btn petit sec" onclick="devis('${i.id}')">Devis</button>
+        <button class="btn petit sec" onclick="modifierIntervention('${i.id}')">Modifier</button>
+        <button class="btn petit danger" onclick="supprimerIntervention('${i.id}')">✕</button>
+      </div></div>`;
+  }).join('') : '<div class="petit-texte">Aucune intervention pour le moment.</div>';
+}
+
+// ---------- Inventaire ----------
+function ajouterStock() {
+  const nom = document.getElementById('s-nom').value.trim();
+  if (!nom) return alert('Indique une désignation');
+  db.stock.push({
+    id: id(),
+    nom,
+    ref: document.getElementById('s-ref').value.trim(),
+    qte: +document.getElementById('s-qte').value || 0,
+    seuil: +document.getElementById('s-seuil').value || 0,
+    ht: +document.getElementById('s-ht').value || 0,
+    ttc: +document.getElementById('s-ttc').value || 0,
+    coef: +document.getElementById('s-coef').value || 1.6,
+    fournisseur: document.getElementById('s-fourn').value
+  });
+  sauver();
+  ['s-nom', 's-ref', 's-ht', 's-ttc'].forEach(x => document.getElementById(x).value = '');
+  document.getElementById('s-qte').value = 0;
+  afficherStock();
+}
+
+function modifierStock(idS) {
+  const s = db.stock.find(x => x.id === idS);
+  const qte = prompt(`Stock actuel de « ${s.nom} » :`, s.qte);
+  if (qte === null) return;
+  s.qte = +qte || 0;
+  sauver();
+  afficherStock();
+}
+
+function afficherStock() {
+  const q = (document.getElementById('recherche-stock').value || '').toLowerCase();
+  const items = db.stock.filter(s => (s.nom + ' ' + s.ref).toLowerCase().includes(q));
+  document.getElementById('liste-stock').innerHTML = items.length ? items.map(s => `
+    <div class="item">
+      <div><b>${s.nom}</b><br>
+      <span class="petit-texte">${s.ref ? 'Réf. ' + s.ref + ' · ' : ''}${s.fournisseur} · achat HT ${euro(s.ht)} · vente HT ${euro(s.ht * (s.coef || 1.6))} (×${s.coef || 1.6})</span></div>
+      <div style="text-align:right;white-space:nowrap">
+        <div class="${s.qte <= s.seuil ? 'alerte' : ''}">${s.qte} en stock</div>
+        <button class="btn petit sec" onclick="modifierStock('${s.id}')">Modifier</button>
+        <button class="btn petit danger" onclick="supprimerStock('${s.id}')">✕</button>
+      </div></div>`).join('') : '<div class="petit-texte">Aucun article.</div>';
+}
+
+function supprimerStock(idS) {
+  if (!confirm('Supprimer cet article de l\'inventaire ?')) return;
+  db.stock = db.stock.filter(s => s.id !== idS);
+  sauver();
+  afficherStock();
+}
+
+// ---------- Rapports ----------
+function interventionsDuMois() {
+  const mois = document.getElementById('r-mois').value || aujourdhui().slice(0, 7);
+  return { mois, liste: db.interventions.filter(i => i.date.startsWith(mois)).sort((a, b) => a.date.localeCompare(b.date)) };
+}
+
+function afficherRapport() {
+  if (!document.getElementById('r-mois').value) document.getElementById('r-mois').value = aujourdhui().slice(0, 7);
+  const { mois, liste } = interventionsDuMois();
+  const [a, m] = mois.split('-');
+  const titreMois = new Date(a, m - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+  document.getElementById('r-titre').textContent = 'Rapport · ' + titreMois;
+  document.getElementById('r-entete').textContent = db.reglages.nom + ' · ' + liste.length + ' intervention(s)';
+
+  // heures par personne
+  const parPersonne = {};
+  let heuresTotal = 0;
+  liste.forEach(i => i.horaires.forEach(h => {
+    const d = heuresEntre(h.debut, h.fin);
+    if (!h.nom) return;
+    parPersonne[h.nom] = (parPersonne[h.nom] || 0) + d;
+    heuresTotal += d;
+  }));
+  document.getElementById('r-heures').innerHTML = Object.keys(parPersonne).length
+    ? `<table>${Object.entries(parPersonne).map(([n, h]) => `<tr><td>${n}</td><td class="droite">${nombre(h)} h</td></tr>`).join('')}
+       <tr><th>Total</th><th class="droite">${nombre(heuresTotal)} h</th></tr></table>`
+    : '<div class="petit-texte">Aucune heure enregistrée.</div>';
+
+  // tableau interventions
+  let ht = 0, ttc = 0, km = 0, achats = 0;
+  const lignes = liste.map(i => {
+    const t = totauxIntervention(i);
+    ht += t.ht; ttc += t.ttc; km += i.km; achats += t.coutPieces;
+    return `<tr>
+      <td>${i.date.split('-').reverse().join('/')}</td>
+      <td>${i.client}<br><span class="petit-texte">${i.adresse}</span></td>
+      <td>${i.type}</td>
+      <td class="droite">${nombre(t.heures)} h</td>
+      <td class="droite">${nombre(i.km)} km</td>
+      <td class="droite">${euro(t.coutPieces)}</td>
+      <td class="droite">${euro(t.ht)}</td>
+      <td class="droite">${euro(t.ttc)}</td></tr>`;
+  }).join('');
+  document.getElementById('r-table').innerHTML = liste.length
+    ? `<tr><th>Date</th><th>Client</th><th>Type</th><th class="droite">Heures</th><th class="droite">Km</th><th class="droite">Achats</th><th class="droite">HT</th><th class="droite">TTC</th></tr>${lignes}`
+    : '<tr><td>Aucune intervention ce mois-ci.</td></tr>';
+
+  document.getElementById('r-totaux').innerHTML = `
+    <div>Achats pièces (coût HT) : ${euro(achats)}</div>
+    <div>Kilomètres : ${nombre(km)} km</div>
+    <div class="total">Chiffre d'affaires HT : ${euro(ht)}</div>
+    <div class="total">Chiffre d'affaires TTC : ${euro(ttc)}</div>`;
+}
+
+function exporterCSV() {
+  const { mois, liste } = interventionsDuMois();
+  const entetes = ['Date', 'Client', 'Adresse', 'Type', 'Heures', 'Km', 'Pièces HT achat', 'Total HT', 'Total TTC', 'Détail pièces'];
+  const lignes = liste.map(i => {
+    const t = totauxIntervention(i);
+    const detail = i.pieces.map(p => `${p.qte}x ${p.nom}`).join(' | ');
+    return [i.date, i.client, i.adresse, i.type, nombre(t.heures), i.km, nombre(t.coutPieces), nombre(t.ht), nombre(t.ttc), detail];
+  });
+  const csv = [entetes, ...lignes].map(l => l.map(c => `"${String(c).replace(/"/g, '""')}"`).join(';')).join('\n');
+  telecharger(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }), `ddp-rapport-${mois}.csv`);
+}
+
+function resumeTexte() {
+  const { mois, liste } = interventionsDuMois();
+  let ht = 0;
+  liste.forEach(i => ht += totauxIntervention(i).ht);
+  return `${db.reglages.nom} — rapport ${mois}\n${liste.length} intervention(s), CA HT ${euro(ht)}`;
+}
+
+async function partager() {
+  const texte = resumeTexte();
+  if (navigator.share) {
+    try { await navigator.share({ title: 'Rapport DDP', text: texte }); } catch (e) {}
+  } else {
+    await navigator.clipboard.writeText(texte);
+    alert('Résumé copié :\n\n' + texte);
+  }
+}
+
+function telecharger(blob, nom) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = nom;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// ---------- Réglages & sauvegarde ----------
+function remplirReglages() {
+  const r = db.reglages;
+  document.getElementById('g-nom').value = r.nom;
+  document.getElementById('g-personnes').value = r.personnes.join('\n');
+  document.getElementById('g-taux').value = r.taux;
+  document.getElementById('g-marge').value = r.marge;
+  document.getElementById('g-km').value = r.km;
+  document.getElementById('g-tva').value = r.tva;
+}
+
+function sauverReglages() {
+  db.reglages = {
+    nom: document.getElementById('g-nom').value.trim() || defaut.reglages.nom,
+    personnes: document.getElementById('g-personnes').value.split('\n').map(s => s.trim()).filter(Boolean),
+    taux: +document.getElementById('g-taux').value || 0,
+    marge: +document.getElementById('g-marge').value || 0,
+    km: +document.getElementById('g-km').value || 0,
+    tva: +document.getElementById('g-tva').value || 0
+  };
+  document.getElementById('sous-titre').textContent = db.reglages.nom;
+  sauver();
+  alert('Réglages enregistrés');
+}
+
+function exporterSauvegarde() {
+  telecharger(new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' }), `ddp-sauvegarde-${aujourdhui()}.json`);
+}
+
+function importerSauvegarde(input) {
+  const f = input.files[0];
+  if (!f) return;
+  const lecteur = new FileReader();
+  lecteur.onload = () => {
+    try {
+      const d = JSON.parse(lecteur.result);
+      if (!confirm('Remplacer les données actuelles par cette sauvegarde ?')) return;
+      db = Object.assign({}, defaut, d, { reglages: Object.assign({}, defaut.reglages, d.reglages) });
+      sauver();
+      location.reload();
+    } catch (e) { alert('Fichier de sauvegarde invalide'); }
+  };
+  lecteur.readAsText(f);
+}
+
+// ---------- Démarrage ----------
+document.getElementById('sous-titre').textContent = db.reglages.nom;
+resetForm();
+afficherInterventions();
+aller('photo');
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>
